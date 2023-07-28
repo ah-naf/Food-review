@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { SlBasket } from "react-icons/sl";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 import { auth, provider } from "../firebaseConfig";
 import { setShowCart, setUser } from "../slice";
 
@@ -24,6 +25,7 @@ function Navbar() {
   });
 
   const handleUpload = async (e) => {
+    setConfirmLoading(true);
     const formData = new FormData();
     formData.append("image", e.target.files[0]);
     const res = await fetch("http://localhost:5000/api/upload", {
@@ -32,6 +34,7 @@ function Navbar() {
     });
     const d = await res.json();
     setData({ ...data, image: d.image });
+    setConfirmLoading(false);
   };
 
   const showModal = () => {
@@ -41,6 +44,26 @@ function Navbar() {
   const handleOk = async () => {
     setConfirmLoading(true);
     try {
+      if (
+        !data.name ||
+        !data.category ||
+        !data.price ||
+        !data.desc ||
+        !data.image
+      ) {
+        toast.error("Fill the required fields", {
+          position: "top-center",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "colored",
+        });
+        setConfirmLoading(false)
+        return;
+      }
       const res = await fetch("http://localhost:5000/api/create", {
         method: "POST",
         headers: {
