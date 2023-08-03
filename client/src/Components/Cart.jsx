@@ -42,8 +42,8 @@ function Cart() {
       body: JSON.stringify({ cart: cartItems }),
     });
     const d = await res.json();
-    if(d.url) {
-        window.location.href = d.url
+    if (d.url) {
+      window.location.href = d.url;
     }
   };
 
@@ -61,7 +61,10 @@ function Cart() {
             <h3 className="text-2xl font-medium">Cart</h3>
             <button
               className="flex items-center text-sm bg-gray-200 p-1 rounded"
-              onClick={() => dispatch(emptyCart())}
+              onClick={() => {
+                dispatch(emptyCart());
+                localStorage.setItem("cart", "");
+              }}  
             >
               clear{" "}
               <span className="ml-1">
@@ -79,7 +82,11 @@ function Cart() {
                     className="flex items-center text-white bg-gray-700 p-2 rounded"
                   >
                     <div>
-                      <img src={val.image} alt="" className="w-24 h-24 object-contain object-center rounded" />
+                      <img
+                        src={val.image}
+                        alt=""
+                        className="w-24 h-24 object-contain object-center rounded"
+                      />
                     </div>
                     <div className="ml-2">
                       <h3 className="text-xl font-semibold">{val.name}</h3>

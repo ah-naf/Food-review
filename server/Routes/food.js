@@ -42,11 +42,26 @@ router.get("/food", async (req, res) => {
 
 router.get("/food/:id", async (req, res) => {
   const id = req.params.id;
-  //   console.log(id);
   try {
     const foodDb = await pool.query(`SELECT * FROM food WHERE id = $1`, [id]);
     // console.log(foodDb.rows)
     return res.status(200).send(foodDb.rows[0]);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send(error.message);
+  }
+});
+
+router.post("/food/:id", async (req, res) => {
+  const id = req.params.id;
+  const { name, category, price, desc, image } = req.body;
+  try {
+    const foodDb = await pool.query(
+      `UPDATE food SET name=$1, image=$2, category=$3, price=$4, "desc"=$5 WHERE id = $6`,
+      [name, image, category, price, desc, id]
+    );
+    // console.log(foodDb.rows)
+    return res.status(200).send("Updated Successfully");
   } catch (error) {
     console.log(error);
     return res.status(500).send(error.message);

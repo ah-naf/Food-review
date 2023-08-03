@@ -1,11 +1,10 @@
-import { Rate } from "antd";
+import { Input, Modal, Rate } from "antd";
 import TextArea from "antd/es/input/TextArea";
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import Navbar from "../Components/Navbar";
-import { addToCart } from "../slice";
 
 function Food() {
   const user = useSelector((state) => state.food.user);
@@ -13,20 +12,26 @@ function Food() {
   const params = useParams();
   const [averageRating, setAverageRating] = useState(0);
   const [food, setFood] = useState();
+  const [tempFood, setTempFood] = useState();
   const [ratingData, setRatingData] = useState({
     rating: 3,
     comment: "",
   });
   const [reviews, setReviews] = useState([]);
   const [render, setRender] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   useEffect(() => {
     (async function () {
       let res = await fetch(`http://localhost:5000/api/food/${params.id}`);
       let data = await res.json();
+      // console.log(data)
       setFood(data);
+      setTempFood(data);
       res = await fetch(`http://localhost:5000/api/review/${params.id}`);
       data = await res.json();
+      // console.log(data)
       setReviews(data);
       let temp = 0;
       data.forEach((val) => (temp += val.rating));
@@ -63,7 +68,7 @@ function Food() {
         }),
       });
       const data = await res.json();
-      console.log(data);
+      // console.log(data);
       setRender(!render);
     } catch (error) {
       toast.error(error.message, {
@@ -76,6 +81,71 @@ function Food() {
         progress: undefined,
         theme: "colored",
       });
+    }
+  };
+
+  const handleUpload = async (e) => {
+    setConfirmLoading(true);
+    const formData = new FormData();
+    formData.append("image", e.target.files[0]);
+    const res = await fetch("http://localhost:5000/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+    const d = await res.json();
+    setTempFood({ ...tempFood, image: d.image });
+    setConfirmLoading(false);
+  };
+
+  const handleOk = async () => {
+    setConfirmLoading(true);
+    try {
+      if (
+        !tempFood.name ||
+        !tempFood.category ||
+        !tempFood.price ||
+        !tempFood.desc ||
+        !tempFood.image
+      ) {
+        toast.error("Fill the required fields", {
+          position: "top-center",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "colored",
+        });
+        setConfirmLoading(false);
+        return;
+      }
+      // console.log(tempFood)
+      const res = await fetch(`http://localhost:5000/api/food/${params.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(tempFood),
+      });
+      window.location.reload();
+    } catch (error) {
+      console.log(error);
+      window.location.reload();
+    }
+    setConfirmLoading(false);
+    setOpen(false);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/review/${id}`, {
+        method: "DELETE",
+      });
+      setReviews(reviews.filter((val) => val.id !== id));
+      window.location.reload()
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -111,12 +181,96 @@ function Food() {
                 </div>
               </div>
               <p className="mt-4 text-sm">{food.desc}</p>
-              <button
-                className="mt-4 bg-orange-500 text-white p-2 px-4 rounded"
-                onClick={() => dispatch(addToCart(food))}
-              >
-                Add to cart
-              </button>
+              <div className="flex gap-4 justify-end">
+                {user && user.uid === tempFood.uid && (
+                  <>
+                    <button
+                      className="mt-4 bg-gray-400 text-white p-2 px-4 rounded"
+                      onClick={() => setOpen(true)}
+                    >
+                      Edit Item
+                    </button>
+                    <Modal
+                      title="Add new item"
+                      open={open}
+                      onOk={handleOk}
+                      okType="dashed"
+                      okText="Edit"
+                      confirmLoading={confirmLoading}
+                      onCancel={() => setOpen(false)}
+                    >
+                      <div className="space-y-3 mt-4">
+                        <div>
+                          <p>Name</p>
+                          <Input
+                            value={tempFood.name}
+                            onChange={(e) =>
+                              setTempFood({ ...tempFood, name: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <p>Category</p>
+                          <Input
+                            value={tempFood.category}
+                            onChange={(e) =>
+                              setTempFood({
+                                ...tempFood,
+                                category: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <p>Price</p>
+                          <Input
+                            type="number"
+                            value={tempFood.price}
+                            onChange={(e) =>
+                              setTempFood({
+                                ...tempFood,
+                                price: parseInt(e.target.value),
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <p>Description</p>
+                          <TextArea
+                            value={tempFood.desc}
+                            onChange={(e) =>
+                              setTempFood({ ...tempFood, desc: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <p>Image</p>
+                          <Input
+                            type="file"
+                            // value={food.image}
+                            onChange={handleUpload}
+                          />
+                          <div className="w-full">
+                            {tempFood.image && (
+                              <img
+                                src={tempFood.image}
+                                className="w-full mt-4 rounded max-h-[250px] object-contain object-center"
+                                alt=""
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Modal>
+                  </>
+                )}
+                <button
+                  className="mt-4 bg-orange-500 text-white p-2 px-4 rounded"
+                  // onClick={() => dispatch(addToCart(food))}
+                >
+                  Add to cart
+                </button>
+              </div>
             </div>
           </div>
           <div className="max-w-4xl mx-auto mt-12">
@@ -157,13 +311,23 @@ function Food() {
             <h1 className="text-2xl text-gray-700 font-medium mb-4">
               Reviews ({reviews.length})
             </h1>
-            <div className="space-y-4">
+            <div className="space-y-4 max-w-lg">
               {reviews.map((val) => (
                 <div key={val} className="border-b pb-4">
-                  <h1 className="text-sm text-gray-900">
+                  <h1 className="text-sm text-gray-900 flex items-center">
                     Posted By:{" "}
                     <span className="text-lg font-medium text-black">
                       {val.username}
+                    </span>
+                    <span className="ml-auto underline ">
+                      {user && user.uid === val.uid && (
+                        <button
+                          className="underline text-red-500"
+                          onClick={() => handleDelete(val.id)}
+                        >
+                          delete
+                        </button>
+                      )}
                     </span>
                   </h1>
                   <div className="flex mt-1">

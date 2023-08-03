@@ -37,4 +37,17 @@ router.get("/review/:id", async (req, res) => {
   }
 });
 
+router.delete("/review/:id", async (req, res) => {
+  try {
+    const foodDb = await pool.query("DELETE FROM review WHERE id=$1", [
+      req.params.id,
+    ]);
+
+    return res.status(200).send(foodDb.rows);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).send(error);
+  }
+});
+
 module.exports = router;
